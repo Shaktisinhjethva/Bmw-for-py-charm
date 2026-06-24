@@ -24,11 +24,14 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "bmw-waste-mgmt-secret-2024")
-DATABASE = os.path.join(os.path.dirname(__file__), "bmw.db")
+
+# Use persistent storage path on Render, fallback to local for development
+DATA_PATH = os.environ.get("DATA_PATH", os.path.dirname(__file__))
+DATABASE = os.path.join(DATA_PATH, "bmw.db")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
 # Upload folder for disposal videos and photos
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads", "disposal_media")
+UPLOAD_FOLDER = os.path.join(DATA_PATH, "uploads", "disposal_media")
 ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'webm', 'flv'}
 ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 MAX_VIDEO_SIZE = 500 * 1024 * 1024  # 500 MB
@@ -441,20 +444,20 @@ def save_disposal_media(video_file, photo_files, collector_id, hospital_id, lati
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         collector_folder = os.path.join(UPLOAD_FOLDER, f"collector_{collector_id}")
         Path(collector_folder).mkdir(parents=True, exist_ok=True)
-        
+
         # Save video
         video_ext = video_file.filename.rsplit('.', 1)[1].lower()
         video_filename = secure_filename(f"disposal_{timestamp}.{video_ext}")
         video_path = os.path.join(collector_folder, video_filename)
         video_file.save(video_path)
         file_size_mb = get_file_size_mb(open(video_path, 'rb'))
-        
+
         # Save photos
         photo_paths = []
         if photo_files:
             photos_folder = os.path.join(collector_folder, f"disposal_{timestamp}_photos")
             Path(photos_folder).mkdir(parents=True, exist_ok=True)
-            
+
             for idx, photo in enumerate(photo_files):
                 if photo and allowed_image_file(photo.filename):
                     photo_ext = photo.filename.rsplit('.', 1)[1].lower()
@@ -463,7 +466,7 @@ def save_disposal_media(video_file, photo_files, collector_id, hospital_id, lati
                     photo.save(photo_path)
                     # Store relative path for easy access
                     photo_paths.append(f"disposal_{timestamp}_photos/{photo_filename}")
-        
+
         return {
             'video_filename': video_filename,
             'video_path': video_path,
@@ -489,7 +492,7 @@ def get_disposal_videos(hospital_id):
         ORDER BY dv.uploaded_at DESC""",
         (hospital_id,),
     ).fetchall()
-    
+
     result = []
     for r in rows:
         d = dict(r)
@@ -1111,7 +1114,7 @@ def upload_disposal_video():
     """Upload disposal video and geotag photos."""
     if 'video' not in request.files:
         return jsonify({"error": "No video file provided"}), 400
-    
+
     video_file = request.files['video']
     photo_files = request.files.getlist('photos[]')
     latitude = request.form.get('latitude', type=float)
@@ -1119,22 +1122,22 @@ def upload_disposal_video():
     address = request.form.get('address', '').strip()
     hospital_id = request.form.get('hospital_id', type=int)
     request_id = request.form.get('request_id', type=int)
-    
+
     if not video_file or video_file.filename == '':
         return jsonify({"error": "No video file selected"}), 400
-    
+
     if not allowed_video_file(video_file.filename):
         return jsonify({"error": "Invalid video format. Allowed: mp4, avi, mov, mkv, webm, flv"}), 400
-    
+
     if not hospital_id:
         return jsonify({"error": "Hospital ID required"}), 400
-    
+
     # Check file size
     if get_file_size_mb(video_file) > MAX_VIDEO_SIZE / (1024 * 1024):
         return jsonify({"error": f"Video file too large. Max: 500MB"}), 400
-    
+
     db = get_db()
-    
+
     # Verify collector is assigned to this request
     if request_id:
         req = db.execute(
@@ -1143,32 +1146,32 @@ def upload_disposal_video():
         ).fetchone()
         if not req:
             return jsonify({"error": "Invalid collection request"}), 403
-    
+
     # Verify hospital exists
     hospital = db.execute(
         "SELECT * FROM hospitals WHERE id = ?", (hospital_id,)
     ).fetchone()
     if not hospital:
         return jsonify({"error": "Hospital not found"}), 404
-    
+
     # Save media files
     media_data = save_disposal_media(
-        video_file, photo_files, 
+        video_file, photo_files,
         session["collector_id"], hospital_id,
         latitude, longitude, address
     )
-    
+
     if not media_data:
         return jsonify({"error": "Failed to save video"}), 500
-    
+
     # Save to database
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     photos_json = json.dumps(media_data['photos']) if media_data['photos'] else None
-    
+
     try:
         cur = db.execute(
             """INSERT INTO disposal_videos
-            (collector_id, hospital_id, request_id, video_filename, photos_json, 
+            (collector_id, hospital_id, request_id, video_filename, photos_json,
              latitude, longitude, address, file_size_mb, status, uploaded_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (
@@ -1187,7 +1190,7 @@ def upload_disposal_video():
         )
         db.commit()
         video_id = cur.lastrowid
-        
+
         return jsonify({
             "success": True,
             "video_id": video_id,
@@ -1218,16 +1221,16 @@ def get_disposal_video_detail(video_id):
         WHERE dv.id = ? AND dv.hospital_id = ?""",
         (video_id, session["hospital_id"]),
     ).fetchone()
-    
+
     if not video:
         return jsonify({"error": "Video not found"}), 404
-    
+
     d = dict(video)
     if d['photos_json']:
         d['photos'] = json.loads(d['photos_json'])
     else:
         d['photos'] = []
-    
+
     return jsonify(d)
 
 
@@ -1238,28 +1241,28 @@ def review_disposal_video(video_id):
     data = request.get_json() or {}
     status = data.get('status', '').strip()  # 'approved' or 'rejected'
     notes = data.get('notes', '').strip()
-    
+
     if status not in ['approved', 'rejected']:
         return jsonify({"error": "Invalid status"}), 400
-    
+
     db = get_db()
     video = db.execute(
         "SELECT * FROM disposal_videos WHERE id = ? AND hospital_id = ?",
         (video_id, session["hospital_id"]),
     ).fetchone()
-    
+
     if not video:
         return jsonify({"error": "Video not found"}), 404
-    
+
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     db.execute(
-        """UPDATE disposal_videos 
+        """UPDATE disposal_videos
         SET status=?, reviewed_at=?, reviewed_by_hospital=1, hospital_notes=?
         WHERE id=?""",
         (status, now, notes, video_id),
     )
     db.commit()
-    
+
     return jsonify({"success": True, "message": f"Video {status}"})
 
 
@@ -1272,15 +1275,15 @@ def serve_disposal_video(video_id):
         "SELECT * FROM disposal_videos WHERE id = ? AND hospital_id = ?",
         (video_id, session["hospital_id"]),
     ).fetchone()
-    
+
     if not video:
         return jsonify({"error": "Video not found"}), 404
-    
+
     try:
         video_path = os.path.join(UPLOAD_FOLDER, f"collector_{video['collector_id']}", video['video_filename'])
         if not os.path.exists(video_path):
             return jsonify({"error": "Video file not found"}), 404
-        
+
         return send_file(video_path, as_attachment=False, mimetype='video/mp4')
     except Exception as e:
         print(f"Error serving video: {e}")
@@ -1296,15 +1299,15 @@ def serve_disposal_photo(video_id, photo_name):
         "SELECT * FROM disposal_videos WHERE id = ? AND hospital_id = ?",
         (video_id, session["hospital_id"]),
     ).fetchone()
-    
+
     if not video:
         return jsonify({"error": "Video not found"}), 404
-    
+
     try:
         photo_path = os.path.join(UPLOAD_FOLDER, f"collector_{video['collector_id']}", photo_name)
         if not os.path.exists(photo_path):
             return jsonify({"error": "Photo not found"}), 404
-        
+
         return send_file(photo_path, as_attachment=False)
     except Exception as e:
         print(f"Error serving photo: {e}")
@@ -1417,6 +1420,10 @@ def about():
     return render_template("about.html", categories=WASTE_CATEGORIES)
 
 
+init_db()  # Ensure DB exists when launched under gunicorn
+
 if __name__ == "__main__":
-    init_db()
-    app.run(debug=True, port=5001)
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    port = int(os.environ.get("PORT", 5001))
+    app.run(debug=False, host="0.0.0.0", port=port)
