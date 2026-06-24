@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Hospital Login{% endblock %}
+
+{% block content %}
+<section class="login-section">
+    <div class="login-visual">
+        <div class="login-3d-scene">
+            <div class="hospital-building">
+                <div class="building-base"></div>
+                <div class="building-tower t1"></div>
+                <div class="building-tower t2"></div>
+                <div class="building-cross">+</div>
+            </div>
+            <div class="login-orbit"></div>
+        </div>
+        <div class="login-visual-text">
+            <h2>Hospital Portal</h2>
+            <p>Monitor waste generation, correct entries, schedule pickups with alerts, and dispatch certified collection vehicles.</p>
+            <ul class="login-features">
+                <li>&#10003; Real-time waste analytics</li>
+                <li>&#10003; Correct wrong waste entries</li>
+                <li>&#10003; Pickup time alerts</li>
+                <li>&#10003; Live vehicle GPS tracking</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="login-form-wrap">
+        <div class="login-card card-3d glass-3d">
+            <div class="login-header">
+                <div class="logo-3d small"><span class="logo-icon">&#9763;</span></div>
+                <h1>Hospital Login</h1>
+                <p>Biomedical Waste Management — Hospital Dashboard</p>
+            </div>
+
+            <form method="POST" class="login-form">
+                <div class="form-group">
+                    <label for="email">Hospital Email</label>
+                    <input type="email" id="email" name="email" placeholder="hospital@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-3d btn-block">Sign In to Dashboard</button>
+            </form>
+
+            <p class="auth-switch">Don't have an account? <a href="{{ url_for('hospital_register') }}">Register</a></p>
+
+            <div class="demo-credentials glass-3d">
+                <h4>Demo Accounts</h4>
+                <div class="demo-row"><span>apollo@hospital.com</span><code>hospital123</code></div>
+                <div class="demo-row"><span>max@hospital.com</span><code>hospital123</code></div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Home{% endblock %} | Biomedical Waste Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
+
+    <nav class="navbar glass-3d">
+        <div class="nav-brand">
+            <a href="{{ url_for('index') }}" class="brand-link">
+                <div class="logo-3d">
+                    <span class="logo-icon">&#9763;</span>
+                </div>
+                <div>
+                    <span class="brand-name">Biomedical Waste Management</span>
+                    <span class="brand-tag">CPCB Compliant &bull; BMW Rules 2016</span>
+                </div>
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Home</a></li>
+            <li><a href="{{ url_for('collectors_page') }}" class="{% if request.endpoint == 'collectors_page' %}active{% endif %}">Collectors</a></li>
+            <li><a href="{{ url_for('about') }}" class="{% if request.endpoint == 'about' %}active{% endif %}">Guidelines</a></li>
+            {% if session.get('hospital_id') %}
+            <li><a href="{{ url_for('hospital_dashboard') }}" class="nav-cta">Hospital</a></li>
+            <li><a href="{{ url_for('hospital_logout') }}">Logout</a></li>
+            {% elif session.get('collector_id') %}
+            <li><a href="{{ url_for('collector_dashboard') }}" class="nav-cta nav-collector">Collector</a></li>
+            <li><a href="{{ url_for('collector_logout') }}">Logout</a></li>
+            {% else %}
+            <li><a href="{{ url_for('hospital_login') }}">Hospital</a></li>
+            <li><a href="{{ url_for('hospital_register') }}">Register</a></li>
+            <li><a href="{{ url_for('collector_login') }}" class="nav-cta nav-collector">Collector</a></li>
+            {% endif %}
+        </ul>
+        <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }} glass-3d">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <main>{% block content %}{% endblock %}</main>
+
+    <footer class="footer glass-3d">
+        <div class="footer-grid">
+            <div>
+                <h4>Biomedical Waste Management</h4>
+                <p>End-to-end traceability from hospital generation to certified collection and disposal.</p>
+            </div>
+            <div>
+                <h4>Portals</h4>
+                <a href="{{ url_for('hospital_login') }}">Hospital Dashboard</a>
+                <a href="{{ url_for('hospital_register') }}">Hospital Register</a>
+                <a href="{{ url_for('collector_login') }}">Collector Dashboard</a>
+                <a href="{{ url_for('collector_register') }}">Collector Register</a>
+                <a href="{{ url_for('collectors_page') }}">Certified Collectors</a>
+                <a href="{{ url_for('about') }}">Waste Guidelines</a>
+            </div>
+            <div>
+                <h4>Compliance</h4>
+                <p>Color-coded segregation &bull; Barcode tracking &bull; Digital manifest &bull; GPS fleet</p>
+            </div>
+        </div>
+        <p class="footer-copy">&copy; 2024 Biomedical Waste Management. Educational demonstration platform.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

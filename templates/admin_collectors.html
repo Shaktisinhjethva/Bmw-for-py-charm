@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Admin — Collector Management{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <header class="admin-header">
+        <div>
+            <h1>Collector <span class="text-gradient">Database</span></h1>
+            <p>Manage certified biomedical waste collectors. Only certified collectors can access the collector portal.</p>
+        </div>
+        <div class="admin-actions">
+            <button id="add-collector-btn" class="btn btn-primary btn-3d">+ Add Collector</button>
+            <a href="{{ url_for('admin_logout') }}" class="btn btn-secondary btn-sm">Logout</a>
+        </div>
+    </header>
+
+    <div class="dash-card card-3d glass-3d">
+        <table class="data-table admin-table" id="collectors-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Certification ID</th>
+                    <th>Vehicle</th>
+                    <th>Phone</th>
+                    <th>Trips</th>
+                    <th>Certified</th>
+                    <th>Expiry</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in collectors %}
+                <tr data-id="{{ c.id }}">
+                    <td>{{ c.name }}</td>
+                    <td>{{ c.email }}</td>
+                    <td><code>{{ c.certification_id }}</code></td>
+                    <td>{{ c.vehicle_no }}</td>
+                    <td>{{ c.phone }}</td>
+                    <td>{{ c.total_collections }}</td>
+                    <td>
+                        <span class="badge {% if c.is_certified %}badge-success{% else %}badge-danger{% endif %}">
+                            {% if c.is_certified %}Certified{% else %}Not Certified{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ c.cert_expiry or '—' }}</td>
+                    <td class="action-btns">
+                        <button class="btn-icon-btn edit-collector" data-collector='{{ c | tojson }}' title="Edit">&#9998;</button>
+                        <button class="btn-icon-btn delete-collector" data-id="{{ c.id }}" title="Delete">&#128465;</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="modal-overlay" id="collector-modal" style="display:none">
+    <div class="modal card-3d glass-3d modal-lg">
+        <h3 id="modal-title">Add Collector</h3>
+        <form id="collector-form">
+            <input type="hidden" id="collector-id">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="col-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="col-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Certification ID</label>
+                    <input type="text" id="col-cert" required placeholder="CPCB-BMW-2024-XXXX">
+                </div>
+                <div class="form-group">
+                    <label>Vehicle No.</label>
+                    <input type="text" id="col-vehicle">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="col-phone">
+                </div>
+                <div class="form-group">
+                    <label>Cert Expiry</label>
+                    <input type="date" id="col-expiry" value="2026-12-31">
+                </div>
+                <div class="form-group">
+                    <label>Password (new only)</label>
+                    <input type="text" id="col-password" placeholder="collector123">
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="col-certified" checked>
+                        CPCB Certified (allows portal access)
+                    </label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancel-modal">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-3d btn-sm">Save Collector</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Admin Login{% endblock %}
+
+{% block content %}
+<section class="login-section" style="justify-content:center">
+    <div class="login-card card-3d glass-3d" style="max-width:400px;margin:0 auto">
+        <div class="login-header">
+            <div class="logo-3d small"><span>&#128274;</span></div>
+            <h1>Admin Access</h1>
+            <p>Manage collector certification database</p>
+        </div>
+        <form method="POST">
+            <div class="form-group">
+                <label>Admin Password</label>
+                <input type="password" name="password" placeholder="Enter admin password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-3d btn-block">Login</button>
+        </form>
+        <div class="demo-credentials glass-3d">
+            <h4>Demo</h4>
+            <div class="demo-row"><span>Password</span><code>admin123</code></div>
+        </div>
+    </div>
+</section>
+{% endblock %}

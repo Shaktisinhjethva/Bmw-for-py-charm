@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge glass-3d">&#127973; India's Smart BMW Management Platform</div>
+        <h1 class="hero-title">
+            <span class="text-gradient">Biomedical Waste</span><br>
+            Management System
+        </h1>
+        <p class="hero-desc">
+            Track hospital waste generation in real-time, schedule certified pickups with smart alerts,
+            and monitor every kilogram from ward to treatment — fully CPCB compliant.
+        </p>
+        <div class="hero-actions">
+            <a href="{{ url_for('hospital_login') }}" class="btn btn-primary btn-3d">
+                <span class="btn-icon">&#127973;</span> Hospital Login
+            </a>
+            <a href="{{ url_for('hospital_register') }}" class="btn btn-secondary btn-3d">Register Hospital</a>
+            <a href="{{ url_for('collector_login') }}" class="btn btn-collector btn-3d">
+                <span class="btn-icon">&#128666;</span> Collector Login
+            </a>
+            <a href="{{ url_for('collector_register') }}" class="btn btn-secondary btn-3d">Register Collector</a>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <div class="scene-3d">
+            <div class="cube-container">
+                <div class="cube">
+                    <div class="cube-face front yellow-waste"><span>&#9888;</span><small>Yellow</small></div>
+                    <div class="cube-face back red-waste"><span>&#9762;</span><small>Red</small></div>
+                    <div class="cube-face right white-waste"><span>&#9874;</span><small>White</small></div>
+                    <div class="cube-face left blue-waste"><span>&#128300;</span><small>Blue</small></div>
+                    <div class="cube-face top black-waste"><span>&#128138;</span><small>Black</small></div>
+                    <div class="cube-face bottom green-safe"><span>&#10003;</span><small>Safe</small></div>
+                </div>
+            </div>
+            <div class="orbit-ring ring-1"></div>
+            <div class="orbit-ring ring-2"></div>
+            <div class="floating-particles" id="particles"></div>
+        </div>
+    </div>
+</section>
+
+<section class="stats-section">
+    <div class="stats-grid">
+        <div class="stat-card card-3d" data-tilt>
+            <div class="stat-icon">&#127973;</div>
+            <div class="stat-value" data-count="{{ stats.hospitals }}">0</div>
+            <div class="stat-label">Partner Hospitals</div>
+        </div>
+        <div class="stat-card card-3d" data-tilt>
+            <div class="stat-icon">&#128666;</div>
+            <div class="stat-value" data-count="{{ stats.collectors }}">0</div>
+            <div class="stat-label">Certified Collectors</div>
+        </div>
+        <div class="stat-card card-3d" data-tilt>
+            <div class="stat-icon">&#9851;</div>
+            <div class="stat-value" data-count="{{ stats.collections }}">0</div>
+            <div class="stat-label">Trips Completed</div>
+        </div>
+        <div class="stat-card card-3d" data-tilt>
+            <div class="stat-icon">&#9989;</div>
+            <div class="stat-value" data-count="{{ stats.compliance }}" data-suffix="%">0</div>
+            <div class="stat-label">Compliance Rate</div>
+        </div>
+    </div>
+</section>
+
+<section class="features-section">
+    <h2 class="section-title">Dual <span class="text-gradient">Dashboard System</span></h2>
+    <p class="section-sub">Separate portals for hospitals and certified waste collectors</p>
+    <div class="features-grid dual-portal">
+        <div class="feature-card card-3d portal-card hospital-portal" data-tilt>
+            <div class="portal-badge">Hospital</div>
+            <div class="feature-icon-wrap">&#127973;</div>
+            <h3>Waste Production Tracker</h3>
+            <p>Log daily biomedical waste by color-coded category. Correct wrong entries, set pickup schedules, and get threshold alerts.</p>
+            <ul class="feature-list">
+                <li>Category-wise waste logging</li>
+                <li>Pickup time alerts</li>
+                <li>Live vehicle tracking</li>
+            </ul>
+            <a href="{{ url_for('hospital_login') }}" class="btn btn-primary btn-sm btn-3d">Login</a>
+            <a href="{{ url_for('hospital_register') }}" class="btn btn-secondary btn-sm">Register</a>
+        </div>
+        <div class="feature-card card-3d portal-card collector-portal" data-tilt>
+            <div class="portal-badge collector">Collector</div>
+            <div class="feature-icon-wrap">&#128666;</div>
+            <h3>Fleet Dispatch Hub</h3>
+            <p>Rapido-inspired job dispatch for certified collectors. Accept pickups, navigate with live GPS, and climb the leaderboard.</p>
+            <ul class="feature-list">
+                <li>Job accept/reject with timer</li>
+                <li>Real-time map navigation</li>
+                <li>Trip leaderboard ranking</li>
+            </ul>
+            <a href="{{ url_for('collector_login') }}" class="btn btn-collector btn-sm btn-3d">Login</a>
+            <a href="{{ url_for('collector_register') }}" class="btn btn-secondary btn-sm">Register</a>
+        </div>
+        <div class="feature-card card-3d" data-tilt>
+            <div class="feature-icon-wrap">&#128680;</div>
+            <h3>Smart Alerts</h3>
+            <p>Automatic threshold warnings when storage limits approach CPCB-mandated capacity levels.</p>
+        </div>
+        <div class="feature-card card-3d" data-tilt>
+            <div class="feature-icon-wrap">&#128220;</div>
+            <h3>Digital Manifest</h3>
+            <p>Complete audit trail from generation to disposal with certified handler verification and barcode tracking.</p>
+        </div>
+    </div>
+</section>
+
+{% if leaderboard %}
+<section class="leaderboard-section">
+    <h2 class="section-title">Top <span class="text-gradient">Collectors</span></h2>
+    <p class="section-sub">Leaderboard by completed collection trips</p>
+    <div class="leaderboard-preview">
+        {% for c in leaderboard %}
+        <div class="lb-row card-3d {% if loop.index <= 3 %}lb-top-{{ loop.index }}{% endif %}">
+            <span class="lb-rank">#{{ loop.index }}</span>
+            <div class="lb-avatar">{{ c.name[0] }}</div>
+            <div class="lb-info">
+                <strong>{{ c.name }}</strong>
+                <small>{{ c.vehicle_no }}</small>
+            </div>
+            <span class="lb-trips">{{ c.total_collections }} trips</span>
+            <span class="badge badge-success">&#9733; {{ c.rating }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="text-center" style="margin-top:1.5rem">
+        <a href="{{ url_for('collectors_page') }}" class="btn btn-secondary btn-3d">View All Collectors</a>
+    </div>
+</section>
+{% endif %}
+
+<section class="categories-section">
+    <h2 class="section-title">Waste <span class="text-gradient">Categories</span></h2>
+    <p class="section-sub">As per Biomedical Waste Management Rules 2016 (India)</p>
+    <div class="categories-grid">
+        {% for cat in categories %}
+        <div class="category-card card-3d cat-{{ cat.id }}" data-tilt>
+            <div class="cat-color-bar"></div>
+            <h3>{{ cat.name }}</h3>
+            <p>{{ cat.desc }}</p>
+            <span class="cat-limit">Storage limit: {{ cat.limit_kg }} kg</span>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="cta-section">
+    <div class="cta-box card-3d glass-3d">
+        <h2>Ready to manage waste responsibly?</h2>
+        <p>Join hospitals across India using Biomedical Waste Management for compliant, traceable BMW handling.</p>
+        <div class="hero-actions" style="justify-content:center">
+            <a href="{{ url_for('hospital_login') }}" class="btn btn-primary btn-3d btn-lg">Hospital Login</a>
+            <a href="{{ url_for('hospital_register') }}" class="btn btn-secondary btn-3d btn-lg">Register Hospital</a>
+            <a href="{{ url_for('collector_login') }}" class="btn btn-collector btn-3d btn-lg">Collector Login</a>
+            <a href="{{ url_for('collector_register') }}" class="btn btn-secondary btn-3d btn-lg">Register Collector</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

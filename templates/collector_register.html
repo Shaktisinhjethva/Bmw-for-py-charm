@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Collector Register{% endblock %}
+
+{% block content %}
+<section class="login-section collector-login-section">
+    <div class="login-visual">
+        <div class="login-3d-scene collector-scene">
+            <div class="vehicle-3d">
+                <div class="vehicle-body"></div>
+                <div class="vehicle-cab"></div>
+                <div class="vehicle-wheels w1"></div>
+                <div class="vehicle-wheels w2"></div>
+                <div class="biohazard-sign">&#9763;</div>
+            </div>
+            <div class="road-line"></div>
+            <div class="login-orbit"></div>
+        </div>
+        <div class="login-visual-text">
+            <h2>Register as Collector</h2>
+            <p>Sign up to receive BMW pickup jobs. Admin will verify your CPCB certification before you can access the dashboard.</p>
+        </div>
+    </div>
+
+    <div class="login-form-wrap">
+        <div class="login-card card-3d glass-3d">
+            <div class="login-header">
+                <div class="logo-3d small collector-logo">
+                    <span class="logo-icon">&#128666;</span>
+                </div>
+                <h1>Collector Register</h1>
+                <p>Certified BMW waste transporters</p>
+            </div>
+
+            <form method="POST" class="login-form">
+                <div class="form-group">
+                    <label for="name">Full Name *</label>
+                    <input type="text" id="name" name="name" placeholder="Your name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" placeholder="collector@bmw.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" name="password" placeholder="Min. 6 characters" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password *</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter password" required>
+                </div>
+                <div class="form-group">
+                    <label for="certification_id">CPCB Certification ID *</label>
+                    <input type="text" id="certification_id" name="certification_id" placeholder="CPCB-BMW-2024-XXXX" required>
+                </div>
+                <div class="form-group">
+                    <label for="vehicle_no">Vehicle Number</label>
+                    <input type="text" id="vehicle_no" name="vehicle_no" placeholder="DL-01-AB-1234">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone" name="phone" placeholder="9876543210">
+                </div>
+                <button type="submit" class="btn btn-collector btn-3d btn-block">Register</button>
+            </form>
+
+            <p class="auth-switch">Already have an account? <a href="{{ url_for('collector_login') }}">Sign in</a></p>
+        </div>
+    </div>
+</section>
+{% endblock %}

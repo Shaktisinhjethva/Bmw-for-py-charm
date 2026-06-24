@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Certified Collectors{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1>Certified <span class="text-gradient">BMW Collectors</span></h1>
+    <p>All listed collectors hold valid CPCB/SPCB authorization for biomedical waste transportation.</p>
+</section>
+
+{% if leaderboard %}
+<section class="leaderboard-section compact">
+    <h2 class="section-title">&#127942; Trip <span class="text-gradient">Leaderboard</span></h2>
+    <div class="leaderboard-preview full">
+        {% for c in leaderboard %}
+        <div class="lb-row card-3d {% if loop.index <= 3 %}lb-top-{{ loop.index }}{% endif %}">
+            <span class="lb-rank">
+                {% if loop.index == 1 %}&#129351;{% elif loop.index == 2 %}&#129352;{% elif loop.index == 3 %}&#129353;{% else %}#{{ loop.index }}{% endif %}
+            </span>
+            <div class="lb-avatar">{{ c.name[0] }}</div>
+            <div class="lb-info">
+                <strong>{{ c.name }}</strong>
+                <small>{{ c.certification_id }} &bull; {{ c.vehicle_no }}</small>
+            </div>
+            <span class="lb-trips">{{ c.total_collections }} trips</span>
+            <span class="badge badge-success">&#9733; {{ c.rating }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="collectors-section">
+    <div class="collectors-grid">
+        {% for c in collectors %}
+        <div class="collector-card card-3d glass-3d" data-tilt>
+            <div class="collector-header">
+                <div class="collector-avatar">
+                    <span>{{ c.name[0] }}</span>
+                    {% if c.is_available %}
+                    <div class="status-dot available" title="Available"></div>
+                    {% else %}
+                    <div class="status-dot busy" title="On Route"></div>
+                    {% endif %}
+                </div>
+                <div class="collector-info">
+                    <h3>{{ c.name }}</h3>
+                    <div class="rating">
+                        {% for i in range(5) %}
+                        <span class="star {% if i < c.rating|int %}filled{% endif %}">&#9733;</span>
+                        {% endfor %}
+                        <span class="rating-num">{{ c.rating }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cert-badge glass-3d">
+                <span class="cert-icon">&#128220;</span>
+                <div>
+                    <strong>Certified Handler</strong>
+                    <code>{{ c.certification_id }}</code>
+                    <small>{{ c.certification_body }}</small>
+                </div>
+            </div>
+
+            <div class="collector-details">
+                <div class="detail-row"><span class="detail-label">&#128666; Vehicle</span><span>{{ c.vehicle_no }}</span></div>
+                <div class="detail-row"><span class="detail-label">&#128222; Contact</span><span>{{ c.phone }}</span></div>
+                <div class="detail-row"><span class="detail-label">&#9851; Trips</span><span>{{ c.total_collections }} completed</span></div>
+                <div class="detail-row">
+                    <span class="detail-label">&#128205; Status</span>
+                    <span class="badge {% if c.is_available %}badge-success{% else %}badge-warning{% endif %}">
+                        {% if c.is_available %}Available{% else %}On Collection Route{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="collector-3d-bar">
+                <div class="progress-3d" style="width: {{ [c.total_collections / 25 * 100, 100]|min|int }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="cert-info-section">
+    <div class="cert-info-box card-3d glass-3d">
+        <h2>&#128737; Certification Requirements</h2>
+        <div class="cert-grid">
+            <div class="cert-item"><h4>CPCB Authorization</h4><p>Valid authorization from Central Pollution Control Board for BMW handling under Schedule II.</p></div>
+            <div class="cert-item"><h4>Vehicle Standards</h4><p>Dedicated leak-proof vehicles with GPS, biohazard signage, and separate compartments per waste type.</p></div>
+            <div class="cert-item"><h4>Training Certificate</h4><p>Mandatory training on segregation, PPE usage, spill management, and emergency protocols.</p></div>
+            <div class="cert-item"><h4>Annual Renewal</h4><p>Certification renewed yearly with vehicle inspection and compliance audit by SPCB.</p></div>
+        </div>
+        <p class="text-muted" style="margin-top:1rem;font-size:0.85rem">
+            Admin: <a href="{{ url_for('admin_login') }}" style="color:var(--accent)">Manage collector database</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Hospital Dashboard{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <aside class="dashboard-sidebar glass-3d">
+        <div class="sidebar-header">
+            <h2>&#9763; Waste Monitor</h2>
+            <span class="hospital-badge">{{ hospital.name }}</span>
+        </div>
+
+        <div class="waste-summary-cards">
+            <div class="mini-stat card-3d">
+                <span class="mini-label">Today</span>
+                <span class="mini-value" id="waste-today">{{ summary.today }} kg</span>
+            </div>
+            <div class="mini-stat card-3d">
+                <span class="mini-label">This Week</span>
+                <span class="mini-value" id="waste-week">{{ summary.week }} kg</span>
+            </div>
+            <div class="mini-stat card-3d highlight">
+                <span class="mini-label">30-Day Total</span>
+                <span class="mini-value" id="waste-month">{{ summary.total_month }} kg</span>
+            </div>
+        </div>
+
+        <h3 class="sidebar-title">By Category (30 days)</h3>
+        <div class="category-bars">
+            {% for cat in categories %}
+            {% set qty = summary.by_category.get(cat.id, 0) %}
+            {% set pct = (qty / cat.limit_kg * 100) if cat.limit_kg else 0 %}
+            <div class="cat-bar-item">
+                <div class="cat-bar-header">
+                    <span class="cat-dot cat-{{ cat.id }}"></span>
+                    <span>{{ cat.name }}</span>
+                    <span class="cat-qty">{{ qty }} / {{ cat.limit_kg }} kg</span>
+                </div>
+                <div class="cat-bar-track">
+                    <div class="cat-bar-fill cat-{{ cat.id }} {% if pct >= 90 %}critical{% elif pct >= 70 %}warning{% endif %}"
+                         style="width: {{ [pct, 100]|min }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if alerts %}
+        <h3 class="sidebar-title">&#128680; Storage Alerts</h3>
+        <div class="alerts-list">
+            {% for alert in alerts %}
+            <div class="alert-item alert-{{ alert.level }}">
+                <strong>{{ alert.category }}</strong>
+                <span>{{ alert.pct }}% of limit ({{ alert.current }} kg)</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="all-clear glass-3d">&#10003; All categories within safe limits</div>
+        {% endif %}
+
+        <div class="log-waste-form glass-3d">
+            <h3>&#128221; Log New Waste</h3>
+            <form id="waste-log-form">
+                <select id="waste-category" required>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="number" id="waste-quantity" placeholder="Quantity (kg)" min="0.1" step="0.1" required>
+                <input type="text" id="waste-notes" placeholder="Notes (optional)">
+                <button type="submit" class="btn btn-secondary btn-3d btn-sm btn-block">+ Add Entry</button>
+            </form>
+        </div>
+
+        <div class="log-waste-form glass-3d schedule-form">
+            <h3>&#128337; Schedule Pickup</h3>
+            <form id="pickup-schedule-form">
+                <input type="datetime-local" id="pickup-time" required>
+                <input type="text" id="pickup-notes" placeholder="Notes (e.g. loading dock B)">
+                <button type="submit" class="btn btn-primary btn-3d btn-sm btn-block">Set Pickup Alert</button>
+            </form>
+        </div>
+    </aside>
+
+    <div class="dashboard-main">
+        <header class="dash-header">
+            <div>
+                <h1>Welcome, {{ hospital.name }}</h1>
+                <p>{{ hospital.address }} &bull; License: {{ hospital.license_no }} &bull; {{ hospital.beds }} beds</p>
+            </div>
+            <button id="request-collection-btn" class="btn btn-primary btn-3d btn-lg"
+                    {% if active_request %}disabled{% endif %}>
+                &#128666; {% if active_request %}Collection Active{% else %}Request Collection Vehicle{% endif %}
+            </button>
+        </header>
+
+        {% if pickup_alerts %}
+        <div class="pickup-alerts-banner">
+            {% for pa in pickup_alerts %}
+            <div class="pickup-alert pickup-{{ pa.level }} glass-3d" data-id="{{ pa.id }}">
+                <span class="pickup-alert-icon">
+                    {% if pa.level == 'overdue' %}&#9888;{% elif pa.level == 'urgent' %}&#128680;{% else %}&#128337;{% endif %}
+                </span>
+                <div>
+                    <strong>{{ pa.message }}</strong>
+                    {% if pa.notes %}<small>{{ pa.notes }}</small>{% endif %}
+                </div>
+                <button class="btn-cancel-schedule btn-sm" data-id="{{ pa.id }}" title="Cancel">&#10005;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="dash-grid">
+            <div class="dash-card card-3d glass-3d chart-card">
+                <h3>&#128200; Waste Generation Trend (14 days)</h3>
+                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="dash-card card-3d glass-3d chart-card">
+                <h3>&#128202; Category Distribution</h3>
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+
+        <div class="dash-card card-3d glass-3d">
+            <h3>&#128203; Recent Waste Entries <small class="text-muted">— correct or remove wrong amounts</small></h3>
+            <table class="data-table" id="waste-logs-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Qty (kg)</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_logs %}
+                    <tr data-id="{{ log.id }}">
+                        <td>{{ log.logged_at[:16] }}</td>
+                        <td><span class="cat-dot cat-{{ log.category }}"></span> {{ log.category_name }}</td>
+                        <td class="log-qty">{{ log.quantity_kg }}</td>
+                        <td class="text-muted">{{ log.notes or '—' }}</td>
+                        <td class="action-btns">
+                            <button class="btn-icon-btn edit-log" data-id="{{ log.id }}" data-qty="{{ log.quantity_kg }}" data-cat="{{ log.category }}" title="Correct">&#9998;</button>
+                            <button class="btn-icon-btn delete-log" data-id="{{ log.id }}" title="Remove wrong entry">&#128465;</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-muted">No waste logged yet. Add your first entry above.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tracking-section" id="tracking-section" {% if not active_request %}style="display:none"{% endif %}>
+            <div class="tracking-header">
+                <h2>&#128205; Live Vehicle Tracking</h2>
+                <span class="tracking-status badge badge-info" id="tracking-status">
+                    {% if active_request %}{{ active_request.status|replace('_',' ')|title }}{% endif %}
+                </span>
+            </div>
+            <div class="tracking-grid">
+                <div class="map-container card-3d" id="map"></div>
+                <div class="tracking-info card-3d glass-3d">
+                    <div id="tracking-details">
+                        {% if active_request %}
+                        <div class="track-detail"><span>Request ID</span><strong>#{{ active_request.id }}</strong></div>
+                        <div class="track-detail"><span>Collector</span><strong>{{ active_request.collector_name or 'Assigning...' }}</strong></div>
+                        <div class="track-detail"><span>Certification</span><strong>{{ active_request.certification_id or '—' }}</strong></div>
+                        <div class="track-detail"><span>Vehicle</span><strong>{{ active_request.vehicle_no or '—' }}</strong></div>
+                        <div class="track-detail"><span>ETA</span><strong id="eta-display">{{ active_request.eta_minutes or '—' }} min</strong></div>
+                        <div class="track-detail">
+                            <span>Priority</span>
+                            <strong class="badge {% if active_request.priority == 'urgent' %}badge-danger{% else %}badge-success{% endif %}">
+                                {{ active_request.priority|title }}
+                            </strong>
+                        </div>
+                        <button id="complete-btn" class="btn btn-secondary btn-3d btn-sm" data-id="{{ active_request.id }}">
+                            Mark Collection Complete
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-card card-3d glass-3d">
+            <h3>&#128101; Available Certified Collectors</h3>
+            <div class="mini-collectors">
+                {% for c in available_collectors %}
+                <div class="mini-collector">
+                    <div class="mini-avatar">{{ c.name[0] }}</div>
+                    <div>
+                        <strong>{{ c.name }}</strong>
+                        <small>{{ c.certification_id }}</small>
+                    </div>
+                    <span class="badge badge-success">&#9733; {{ c.rating }}</span>
+                </div>
+                {% else %}
+                <p class="text-muted">All collectors currently on route. New requests will be queued.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="dash-card card-3d glass-3d">
+            <h3>&#128203; Collection History</h3>
+            <table class="data-table">
+                <thead>
+                    <tr><th>ID</th><th>Date</th><th>Collector</th><th>Total (kg)</th><th>Priority</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for h in history %}
+                    <tr>
+                        <td>#{{ h.id }}</td>
+                        <td>{{ h.requested_at[:10] }}</td>
+                        <td>{{ h.collector_name or '—' }}</td>
+                        <td>{{ h.total_kg }}</td>
+                        <td><span class="badge {% if h.priority == 'urgent' %}badge-danger{% else %}badge-success{% endif %}">{{ h.priority }}</span></td>
+                        <td><span class="badge badge-{{ h.status }}">{{ h.status|replace('_',' ')|title }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-muted">No collection history yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Disposal Videos Section -->
+        <div class="dash-card card-3d glass-3d disposal-videos-card">
+            <div class="card-header-with-icon">
+                <h3>&#127907; Disposal Evidence Videos</h3>
+                <span class="badge" id="disposal-video-count">0</span>
+            </div>
+            <p class="text-muted" style="margin-bottom: 1rem;">Collector-recorded videos of waste disposal with geotag photos</p>
+            
+            <div id="disposal-videos-list" class="disposal-videos-grid">
+                <!-- Videos will be loaded here -->
+            </div>
+            
+            <div id="no-disposal-videos" class="no-data-placeholder">
+                <p>No disposal evidence videos yet. Collectors will upload videos after completing pickups.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disposal Video Modal -->
+<div class="modal-overlay" id="disposal-video-modal" style="display:none">
+    <div class="modal card-3d glass-3d disposal-video-modal">
+        <div class="modal-header">
+            <h3>Disposal Evidence</h3>
+            <button type="button" class="modal-close-btn" id="close-video-modal">×</button>
+        </div>
+        
+        <div class="modal-body">
+            <div id="video-modal-content">
+                <!-- Video details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Disposal Video Modal -->
+<div class="modal-overlay" id="review-disposal-modal" style="display:none">
+    <div class="modal card-3d glass-3d">
+        <h3>Review Disposal Video</h3>
+        <form id="review-disposal-form">
+            <div class="form-group">
+                <label>Decision</label>
+                <select id="review-status" required>
+                    <option value="">Select action...</option>
+                    <option value="approved">✓ Approve</option>
+                    <option value="rejected">✗ Reject & Request New Video</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="review-notes" placeholder="Your review comments..." rows="3"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancel-review">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-sm btn-3d">Submit Review</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="correct-modal" style="display:none">
+    <div class="modal card-3d glass-3d">
+        <h3>Correct Waste Entry</h3>
+        <p class="text-muted">Fix a wrong amount you entered earlier.</p>
+        <form id="correct-form">
+            <input type="hidden" id="correct-log-id">
+            <div class="form-group">
+                <label>Category</label>
+                <select id="correct-category">
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Correct Quantity (kg)</label>
+                <input type="number" id="correct-quantity" min="0.1" step="0.1" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancel-correct">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-sm btn-3d">Save Correction</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const TREND_DATA = {{ trend | tojson }};
+    const CATEGORY_DATA = {{ summary.by_category | tojson }};
+    const CATEGORIES = {{ categories | tojson }};
+    const HOSPITAL_LAT = {{ hospital.lat }};
+    const HOSPITAL_LNG = {{ hospital.lng }};
+    {% if active_request %}
+    const ACTIVE_REQUEST = {{ active_request | tojson }};
+    {% else %}
+    const ACTIVE_REQUEST = null;
+    {% endif %}
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

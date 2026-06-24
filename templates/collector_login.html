@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Collector Login{% endblock %}
+
+{% block content %}
+<section class="login-section collector-login-section">
+    <div class="login-visual">
+        <div class="login-3d-scene collector-scene">
+            <div class="vehicle-3d">
+                <div class="vehicle-body"></div>
+                <div class="vehicle-cab"></div>
+                <div class="vehicle-wheels w1"></div>
+                <div class="vehicle-wheels w2"></div>
+                <div class="biohazard-sign">&#9763;</div>
+            </div>
+            <div class="road-line"></div>
+            <div class="login-orbit"></div>
+        </div>
+        <div class="login-visual-text">
+            <h2>Collector Portal</h2>
+            <p>Accept BMW pickup jobs, navigate with live GPS, and track your trips on the leaderboard.</p>
+            <ul class="login-features">
+                <li>&#10003; Rapido-style job dispatch</li>
+                <li>&#10003; Live vehicle map tracking</li>
+                <li>&#10003; CPCB certification required</li>
+                <li>&#10003; Trip leaderboard &amp; rankings</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="login-form-wrap">
+        <div class="login-card card-3d glass-3d">
+            <div class="login-header">
+                <div class="logo-3d small collector-logo">
+                    <span class="logo-icon">&#128666;</span>
+                </div>
+                <h1>Collector Login</h1>
+                <p>Certified collectors only — CPCB/SPCB authorization required</p>
+            </div>
+
+            <form method="POST" class="login-form">
+                <div class="form-group">
+                    <label for="email">Collector Email</label>
+                    <input type="email" id="email" name="email" placeholder="collector@bmw.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn btn-collector btn-3d btn-block">Start Collecting</button>
+            </form>
+
+            <p class="auth-switch">Don't have an account? <a href="{{ url_for('collector_register') }}">Register</a></p>
+
+            <div class="demo-credentials glass-3d">
+                <h4>Demo Accounts (Certified)</h4>
+                <div class="demo-row"><span>rajesh@bmw.com</span><code>collector123</code></div>
+                <div class="demo-row"><span>priya@bmw.com</span><code>collector123</code></div>
+                <p class="text-muted" style="font-size:0.75rem;margin-top:0.5rem">
+                    vikram@bmw.com is <strong>not certified</strong> (login blocked demo)
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
